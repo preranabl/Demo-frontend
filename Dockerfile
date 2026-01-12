@@ -1,24 +1,29 @@
-# Use official Node image
-FROM node:20-alpine
+# ---------- Build stage ----------
+FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json & install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy source code
 COPY . .
 
-# Build the React app
+# API URL must be set at build time
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
 RUN npm run build
 
-# Use a lightweight server to serve the build
+# ---------- Runtime stage ----------
+FROM node:20-alpine
+
+WORKDIR /app
+
 RUN npm install -g serve
 
-# Expose port
-EXPOSE 3001
+COPY --from=build /app/build ./build
 
-# Command to start server
-CMD ["serve", "-s", "build", "-l", "3001"]
+EXPOSE 3000
+
+CMD ["serve", "-s", "build", "-l", "3000"]
+
